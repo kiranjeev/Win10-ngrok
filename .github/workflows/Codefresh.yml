@@ -1,0 +1,47 @@
+version: '1.0'
+stages:
+  - "setup"
+  - "run"
+
+steps:
+  download_ngrok:
+    title: "Download ngrok"
+    stage: "setup"
+    image: ubuntu:24.04
+    commands:
+      - apt-get update && apt-get install -y wget unzip
+      - wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip -O ngrok.zip
+      - unzip ngrok.zip -d /usr/local/bin/
+
+  authenticate_ngrok:
+    title: "Authenticate ngrok"
+    stage: "setup"
+    image: ubuntu:24.04
+    commands:
+      - ngrok authtoken ${NGROK_AUTH_TOKEN}
+    environment:
+      NGROK_AUTH_TOKEN: '${{NGROK_AUTH_TOKEN}}'
+
+  enable_rdp:
+    title: "Enable RDP and Firewall Rules"
+    stage: "run"
+    image: ubuntu:24.04
+    commands:
+      - apt-get update && apt-get install -y xrdp
+      - systemctl enable xrdp
+      - systemctl start xrdp
+      - ufw allow 3389
+
+  set_user_password:
+    title: "Set User Password"
+    stage: "run"
+    image: ubuntu:24.04
+    commands:
+      - echo "runneradmin:P@ssw0rd!" | chpasswd
+
+  create_tunnel:
+    title: "Create Tunnel with ngrok"
+    stage: "run"
+    image: ubuntu:24.04
+    commands:
+      - ngrok tcp 3389
